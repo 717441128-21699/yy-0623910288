@@ -1,21 +1,25 @@
 const MapModule = {
     svg: null,
     markerGroup: null,
-    tooltip: null,
+    detailCard: null,
     mapContainer: null,
     currentRange: 'today',
+    currentTypeId: null,
     activeDistrict: null,
     clusteredMarkers: [],
+    selectedComplaint: null,
+    highlightedComplaintIds: new Set(),
 
     init() {
         this.svg = document.getElementById('mapSvg');
         this.markerGroup = document.getElementById('markerGroup');
-        this.tooltip = document.getElementById('mapTooltip');
+        this.detailCard = document.getElementById('detailCard');
         this.mapContainer = document.getElementById('mapContainer');
 
         this.renderDistricts();
         this.renderRoads();
         this.bindEvents();
+        this.bindDetailCardEvents();
     },
 
     renderDistricts() {
@@ -58,15 +62,17 @@ const MapModule = {
         });
     },
 
-    update(range) {
+    update(range, typeId = null) {
         this.currentRange = range;
+        this.currentTypeId = typeId;
+        this.closeDetailCard();
         this.renderMarkers();
         this.updateDistrictStats();
     },
 
     renderMarkers() {
         this.markerGroup.innerHTML = '';
-        const complaints = AppData.getComplaints(this.currentRange);
+        const complaints = AppData.getComplaints(this.currentRange, this.currentTypeId);
 
         const clustered = this.clusterComplaints(complaints);
         this.clusteredMarkers = clustered;
@@ -78,6 +84,8 @@ const MapModule = {
                 this.createClusterMarker(cluster, index);
             }
         });
+
+        this.applyHighlight();
     },
 
     clusterComplaints(complaints) {
@@ -129,6 +137,7 @@ const MapModule = {
         g.setAttribute('class', 'marker-group');
         g.setAttribute('transform', `translate(${cluster.x}, ${cluster.y})`);
         g.setAttribute('data-index', index);
+        g.dataset.complaintId = complaint.id;
 
         const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         pulse.setAttribute('class', 'marker-pulse');
@@ -144,10 +153,10 @@ const MapModule = {
         dot.setAttribute('filter', 'url(#markerGlow)');
         g.appendChild(dot);
 
-        g.addEventListener('mouseenter', (e) => this.showTooltip(e, complaint));
-        g.addEventListener('mousemove', (e) => this.moveTooltip(e));
-        g.addEventListener('mouseleave', () => this.hideTooltip());
-        g.addEventListener('click', () => this.onMarkerClick(complaint));
+        g.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openDetailCard(complaint, cluster.x, cluster.y);
+        });
 
         this.markerGroup.appendChild(g);
     },
@@ -157,6 +166,9 @@ const MapModule = {
         g.setAttribute('class', 'marker-group');
         g.setAttribute('transform', `translate(${cluster.x}, ${cluster.y})`);
         g.setAttribute('data-index', index);
+        
+        const complaintIds = cluster.complaints.map(c => c.id).join(',');
+        g.dataset.complaintId = complaintIds;
 
         const size = Math.min(8 + cluster.count * 2, 20);
 
@@ -186,91 +198,136 @@ const MapModule = {
         text.textContent = cluster.count;
         g.appendChild(text);
 
-        g.addEventListener('mouseenter', (e) => this.showClusterTooltip(e, cluster));
-        g.addEventListener('mousemove', (e) => this.moveTooltip(e));
-        g.addEventListener('mouseleave', () => this.hideTooltip());
-        g.addEventListener('click', () => this.onClusterClick(cluster));
+        g.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const mainComplaint = cluster.complaints.sort((a, b) => b.similarCount - a.similarCount)[0];
+            this.openDetailCard(mainComplaint, cluster.x, cluster.y);
+        });
 
         this.markerGroup.appendChild(g);
     },
 
-    showTooltip(e, complaint) {
-        const tooltipTitle = document.getElementById('tooltipTitle');
-        const tooltipType = document.getElementById('tooltipType');
-        const tooltipSummary = document.getElementById('tooltipSummary');
-        const tooltipSource = document.getElementById('tooltipSource');
-        const tooltipCount = document.getElementById('tooltipCount');
-        const tooltipTime = document.getElementById('tooltipTime');
+    openDetailCard(complaint, x, y) {
+        this.selectedComplaint = complaint;
 
-        tooltipTitle.textContent = `${complaint.districtName} - 投诉点位`;
-        tooltipType.textContent = complaint.typeName;
-        tooltipType.className = `tooltip-type type-${complaint.typeId}`;
-        tooltipSummary.textContent = complaint.summary;
-        tooltipSource.textContent = complaint.source;
-        tooltipCount.textContent = `${complaint.similarCount} 件`;
-        tooltipTime.textContent = complaint.timeAgo;
+        document.getElementById('detailTitle').textContent = `${complaint.districtName} - 投诉点位`;
+        
+        const typeEl = document.getElementById('detailType');
+        typeEl.textContent = complaint.typeName;
+        typeEl.className = `detail-card-type type-${complaint.typeId}`;
 
-        this.tooltip.style.display = 'block';
-        this.moveTooltip(e);
-    },
+        document.getElementById('detailSummary').textContent = complaint.summary;
+        document.getElementById('detailAddress').textContent = complaint.address || '-';
+        document.getElementById('detailSource').textContent = complaint.source;
+        document.getElementById('detailSimilar').textContent = `${complaint.similarCount} 件`;
+        document.getElementById('detailTime').textContent = complaint.timeAgo;
 
-    showClusterTooltip(e, cluster) {
-        const tooltipTitle = document.getElementById('tooltipTitle');
-        const tooltipType = document.getElementById('tooltipType');
-        const tooltipSummary = document.getElementById('tooltipSummary');
-        const tooltipSource = document.getElementById('tooltipSource');
-        const tooltipCount = document.getElementById('tooltipCount');
-        const tooltipTime = document.getElementById('tooltipTime');
-
-        const mainComplaint = cluster.complaints[0];
-
-        tooltipTitle.textContent = `${mainComplaint.districtName} - 聚类投诉点`;
-        tooltipType.textContent = cluster.typeName;
-        tooltipType.className = `tooltip-type type-${cluster.typeId}`;
-        tooltipSummary.textContent = `该区域共有 ${cluster.count} 起同类投诉，主要集中在${mainComplaint.summary.substring(0, 20)}...`;
-        tooltipSource.textContent = '多渠道来源';
-        tooltipCount.textContent = `${cluster.count} 件`;
-        tooltipTime.textContent = mainComplaint.timeAgo;
-
-        this.tooltip.style.display = 'block';
-        this.moveTooltip(e);
-    },
-
-    moveTooltip(e) {
-        if (!this.tooltip || !this.mapContainer) return;
-
-        const rect = this.mapContainer.getBoundingClientRect();
-        let x = e.clientX - rect.left + 15;
-        let y = e.clientY - rect.top + 15;
-
-        const tooltipWidth = this.tooltip.offsetWidth;
-        const tooltipHeight = this.tooltip.offsetHeight;
-
-        if (x + tooltipWidth > rect.width - 10) {
-            x = e.clientX - rect.left - tooltipWidth - 15;
-        }
-        if (y + tooltipHeight > rect.height - 10) {
-            y = e.clientY - rect.top - tooltipHeight - 15;
+        const tagsContainer = document.getElementById('detailTags');
+        tagsContainer.innerHTML = '';
+        if (complaint.relatedKeywords && complaint.relatedKeywords.length > 0) {
+            complaint.relatedKeywords.forEach(keyword => {
+                const tag = document.createElement('span');
+                tag.className = 'detail-tag';
+                tag.textContent = keyword;
+                tagsContainer.appendChild(tag);
+            });
+        } else {
+            const tag = document.createElement('span');
+            tag.className = 'detail-tag';
+            tag.textContent = '暂无';
+            tagsContainer.appendChild(tag);
         }
 
-        this.tooltip.style.left = `${x}px`;
-        this.tooltip.style.top = `${y}px`;
+        const statusBadge = document.getElementById('detailStatus');
+        const statusMap = {
+            '已派单': 'status-dispatched',
+            '已到场': 'status-arrived',
+            '已回复': 'status-replied',
+            '处理中': 'status-processing'
+        };
+        statusBadge.textContent = complaint.status;
+        statusBadge.className = `status-badge ${statusMap[complaint.status] || ''}`;
+
+        this.detailCard.style.display = 'flex';
     },
 
-    hideTooltip() {
-        this.tooltip.style.display = 'none';
+    closeDetailCard() {
+        this.detailCard.style.display = 'none';
+        this.selectedComplaint = null;
     },
 
-    onMarkerClick(complaint) {
-        console.log('Marker clicked:', complaint);
+    bindDetailCardEvents() {
+        const closeBtn = document.getElementById('detailCardClose');
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeDetailCard();
+        });
+
+        this.mapContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'svg' || 
+                e.target.tagName === 'rect' || 
+                e.target.tagName === 'path' ||
+                e.target === this.mapContainer) {
+                this.closeDetailCard();
+                this.clearHighlight();
+                HotwordsModule.clearSelection();
+            }
+        });
+
+        const locateBtn = document.getElementById('detailLocateBtn');
+        locateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.selectedComplaint) {
+                console.log('定位到:', this.selectedComplaint);
+            }
+        });
+
+        this.detailCard.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
     },
 
-    onClusterClick(cluster) {
-        console.log('Cluster clicked:', cluster);
+    highlightByKeyword(keyword) {
+        this.highlightedComplaintIds.clear();
+        
+        const hotwords = AppData.getHotwords(this.currentRange, this.currentTypeId);
+        const matched = hotwords.find(h => h.text === keyword);
+        
+        if (matched && matched.relatedComplaintIds) {
+            matched.relatedComplaintIds.forEach(id => this.highlightedComplaintIds.add(id));
+        }
+
+        this.applyHighlight();
+    },
+
+    applyHighlight() {
+        const markerGroups = this.markerGroup.querySelectorAll('.marker-group');
+        
+        markerGroups.forEach(group => {
+            const groupIds = (group.dataset.complaintId || '').split(',');
+            const hasMatch = groupIds.some(id => this.highlightedComplaintIds.has(id));
+            
+            if (this.highlightedComplaintIds.size > 0) {
+                if (hasMatch) {
+                    group.classList.add('highlighted');
+                    group.classList.remove('dimmed');
+                } else {
+                    group.classList.add('dimmed');
+                    group.classList.remove('highlighted');
+                }
+            } else {
+                group.classList.remove('highlighted', 'dimmed');
+            }
+        });
+    },
+
+    clearHighlight() {
+        this.highlightedComplaintIds.clear();
+        this.applyHighlight();
     },
 
     updateDistrictStats() {
-        const stats = AppData.getDistrictStats(this.currentRange);
+        const stats = AppData.getDistrictStats(this.currentRange, this.currentTypeId);
         const statItems = document.querySelectorAll('.district-stat-item');
 
         statItems.forEach((item, index) => {

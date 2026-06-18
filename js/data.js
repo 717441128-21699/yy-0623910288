@@ -49,37 +49,37 @@ const AppData = {
         week: []
     },
 
-    teamNames: [
-        '城管执法一大队',
-        '城管执法二大队',
-        '城管执法三大队',
-        '城管执法四大队',
-        '城管执法五大队',
-        '高新区执法中队',
-        '经开区执法中队'
+    teamConfig: [
+        { name: '城管执法一大队', districts: [0, 1], area: '城东片区（含中心商圈）' },
+        { name: '城管执法二大队', districts: [2], area: '城南片区' },
+        { name: '城管执法三大队', districts: [3], area: '城北片区' },
+        { name: '城管执法四大队', districts: [1], area: '城西片区' },
+        { name: '城管执法五大队', districts: [0, 2], area: '东南片区' },
+        { name: '高新区执法中队', districts: [4], area: '高新区全域' },
+        { name: '经开区执法中队', districts: [4], area: '高新区经开片区' }
     ],
 
     hotwordTemplates: [
-        { text: '人民路', type: 'place' },
-        { text: '解放路', type: 'place' },
-        { text: '中山路', type: 'place' },
-        { text: '建设路', type: 'place' },
-        { text: '和平路', type: 'place' },
-        { text: '万达广场', type: 'mall' },
-        { text: '万象城', type: 'mall' },
-        { text: '国贸中心', type: 'mall' },
-        { text: '时代广场', type: 'mall' },
-        { text: '大学城', type: 'place' },
-        { text: '火车站', type: 'place' },
-        { text: '汽车站', type: 'place' },
-        { text: '夜市', type: 'event' },
-        { text: '凌晨施工', type: 'event' },
-        { text: '垃圾清运', type: 'event' },
-        { text: '共享单车', type: 'event' },
-        { text: '流动摊贩', type: 'event' },
-        { text: '油烟扰民', type: 'event' },
-        { text: '占道停车', type: 'event' },
-        { text: '城中村', type: 'place' }
+        { text: '人民路', type: 'place', typeLabel: '道路' },
+        { text: '解放路', type: 'place', typeLabel: '道路' },
+        { text: '中山路', type: 'place', typeLabel: '道路' },
+        { text: '建设路', type: 'place', typeLabel: '道路' },
+        { text: '和平路', type: 'place', typeLabel: '道路' },
+        { text: '万达广场', type: 'mall', typeLabel: '商圈' },
+        { text: '万象城', type: 'mall', typeLabel: '商圈' },
+        { text: '国贸中心', type: 'mall', typeLabel: '商圈' },
+        { text: '时代广场', type: 'mall', typeLabel: '商圈' },
+        { text: '大学城', type: 'place', typeLabel: '区域' },
+        { text: '火车站', type: 'place', typeLabel: '交通枢纽' },
+        { text: '汽车站', type: 'place', typeLabel: '交通枢纽' },
+        { text: '夜市', type: 'event', typeLabel: '事件' },
+        { text: '凌晨施工', type: 'event', typeLabel: '事件' },
+        { text: '垃圾清运', type: 'event', typeLabel: '事件' },
+        { text: '共享单车', type: 'event', typeLabel: '事件' },
+        { text: '流动摊贩', type: 'event', typeLabel: '事件' },
+        { text: '油烟扰民', type: 'event', typeLabel: '事件' },
+        { text: '占道停车', type: 'event', typeLabel: '事件' },
+        { text: '城中村', type: 'place', typeLabel: '区域' }
     ],
 
     init() {
@@ -105,6 +105,28 @@ const AppData = {
                 const y = district.centerY + Math.sin(angle) * radius;
                 
                 const timeAgo = this.getTimeAgo(range, i, counts[range]);
+
+                const statuses = ['已派单', '已到场', '已回复', '处理中'];
+                const statusWeights = [0.15, 0.2, 0.5, 0.15];
+                const rand = Math.random();
+                let cumWeight = 0;
+                let status = statuses[0];
+                for (let s = 0; s < statuses.length; s++) {
+                    cumWeight += statusWeights[s];
+                    if (rand <= cumWeight) {
+                        status = statuses[s];
+                        break;
+                    }
+                }
+
+                const relatedKeywords = [];
+                const keywordCount = Math.floor(Math.random() * 2) + 1;
+                for (let k = 0; k < keywordCount; k++) {
+                    const template = this.hotwordTemplates[Math.floor(Math.random() * this.hotwordTemplates.length)];
+                    if (!relatedKeywords.includes(template.text)) {
+                        relatedKeywords.push(template.text);
+                    }
+                }
                 
                 complaints.push({
                     id: `${range}-${i}`,
@@ -119,7 +141,11 @@ const AppData = {
                     source: source,
                     similarCount: Math.floor(Math.random() * 30) + 1,
                     timeAgo: timeAgo,
-                    timestamp: Date.now() - Math.random() * this.getRangeMs(range)
+                    timestamp: Date.now() - Math.random() * this.getRangeMs(range),
+                    status: status,
+                    relatedKeywords: relatedKeywords,
+                    teamId: Math.floor(Math.random() * this.teamConfig.length),
+                    address: `${district.name}${['人民路', '解放路', '中山路', '建设路'][Math.floor(Math.random() * 4)]}${Math.floor(Math.random() * 200) + 1}号附近`
                 });
             }
             this.complaints[range] = complaints;
@@ -158,19 +184,45 @@ const AppData = {
                 const level = isHot ? 'hot' : isWarm ? 'warm' : 'normal';
                 const count = Math.floor(Math.random() * 100) + (isHot ? 80 : isWarm ? 40 : 15);
                 const growth = Math.floor(Math.random() * 50) + (isHot ? 30 : isWarm ? 15 : 5);
+
+                const relatedComplaintIds = this.getRelatedComplaintIds(range, word.text);
                 
                 hotwords.push({
                     text: word.text,
                     type: word.type,
+                    typeLabel: word.typeLabel,
                     level: level,
                     count: count,
-                    growth: growth
+                    growth: growth,
+                    relatedComplaintIds: relatedComplaintIds
                 });
             });
             
             hotwords.sort((a, b) => b.count - a.count);
             this.hotwords[range] = hotwords;
         });
+    },
+
+    getRelatedComplaintIds(range, keyword) {
+        const complaints = this.complaints[range] || [];
+        const related = [];
+        
+        complaints.forEach(c => {
+            if (c.relatedKeywords && c.relatedKeywords.includes(keyword)) {
+                related.push(c.id);
+            }
+        });
+
+        if (related.length < 3) {
+            const randomComplaints = complaints.sort(() => Math.random() - 0.5).slice(0, Math.min(5, complaints.length));
+            randomComplaints.forEach(c => {
+                if (!related.includes(c.id)) {
+                    related.push(c.id);
+                }
+            });
+        }
+        
+        return related.slice(0, 8);
     },
 
     generateTeams() {
@@ -180,20 +232,33 @@ const AppData = {
             const teams = [];
             const mult = multipliers[range];
             
-            this.teamNames.forEach((name, index) => {
+            this.teamConfig.forEach((config, index) => {
                 const base = 80 + Math.floor(Math.random() * 50);
                 const total = Math.floor(base * mult);
                 const dispatched = total;
                 const arrived = Math.floor(total * (0.6 + Math.random() * 0.25));
                 const replied = Math.floor(arrived * (0.7 + Math.random() * 0.2));
+
+                const statusDist = {
+                    '已派单': total - arrived,
+                    '已到场': arrived - replied,
+                    '已回复': replied,
+                    '处理中': Math.floor(total * 0.05)
+                };
+
+                const pendingComplaints = this.getPendingComplaints(range, index);
                 
                 teams.push({
                     id: index,
-                    name: name,
+                    name: config.name,
+                    area: config.area,
+                    districts: config.districts,
                     total: total,
                     dispatched: dispatched,
                     arrived: arrived,
-                    replied: replied
+                    replied: replied,
+                    statusDist: statusDist,
+                    pendingComplaints: pendingComplaints
                 });
             });
             
@@ -202,20 +267,86 @@ const AppData = {
         });
     },
 
-    getComplaints(range) {
-        return this.complaints[range] || [];
+    getPendingComplaints(range, teamId) {
+        const complaints = this.complaints[range] || [];
+        const teamComplaints = complaints.filter(c => c.teamId === teamId);
+        
+        const pending = teamComplaints.filter(c => c.status !== '已回复');
+        
+        return pending
+            .sort((a, b) => b.similarCount - a.similarCount)
+            .slice(0, 5);
     },
 
-    getHotwords(range) {
-        return this.hotwords[range] || [];
+    getComplaints(range, typeId = null, keyword = null) {
+        let complaints = this.complaints[range] || [];
+        
+        if (typeId) {
+            complaints = complaints.filter(c => c.typeId === typeId);
+        }
+        
+        if (keyword) {
+            complaints = complaints.filter(c => 
+                c.relatedKeywords && c.relatedKeywords.includes(keyword)
+            );
+        }
+        
+        return complaints;
     },
 
-    getTeams(range) {
-        return this.teams[range] || [];
+    getHotwords(range, typeId = null) {
+        let hotwords = this.hotwords[range] || [];
+        
+        if (typeId) {
+            const typeComplaints = this.getComplaints(range, typeId);
+            const relatedKeywords = new Set();
+            typeComplaints.forEach(c => {
+                if (c.relatedKeywords) {
+                    c.relatedKeywords.forEach(k => relatedKeywords.add(k));
+                }
+            });
+            hotwords = hotwords.filter(h => relatedKeywords.has(h.text));
+        }
+        
+        return hotwords;
     },
 
-    getDistrictStats(range) {
-        const complaints = this.getComplaints(range);
+    getTeams(range, typeId = null) {
+        let teams = this.teams[range] || [];
+        
+        if (typeId) {
+            teams = teams.map(team => {
+                const teamComplaints = this.getComplaints(range, typeId).filter(c => c.teamId === team.id);
+                const dispatched = teamComplaints.length;
+                const arrived = teamComplaints.filter(c => c.status === '已到场' || c.status === '已回复' || c.status === '处理中').length;
+                const replied = teamComplaints.filter(c => c.status === '已回复').length;
+                
+                return {
+                    ...team,
+                    total: dispatched,
+                    dispatched,
+                    arrived,
+                    replied,
+                    statusDist: {
+                        '已派单': dispatched - arrived,
+                        '已到场': arrived - replied,
+                        '已回复': replied,
+                        '处理中': Math.floor(dispatched * 0.05)
+                    }
+                };
+            }).filter(t => t.total > 0);
+        }
+        
+        return teams;
+    },
+
+    getTeamDetail(range, teamId) {
+        const teams = this.getTeams(range);
+        return teams.find(t => t.id === teamId) || null;
+    },
+
+    getDistrictStats(range, typeId = null) {
+        const complaints = this.getComplaints(range, typeId);
         const stats = {};
         
         this.districts.forEach(d => {
@@ -231,9 +362,9 @@ const AppData = {
         return Object.values(stats);
     },
 
-    getSummaryStats(range) {
-        const complaints = this.getComplaints(range);
-        const teams = this.getTeams(range);
+    getSummaryStats(range, typeId = null) {
+        const complaints = this.getComplaints(range, typeId);
+        const teams = this.getTeams(range, typeId);
         
         const total = complaints.length;
         const dispatched = teams.reduce((sum, t) => sum + t.dispatched, 0);

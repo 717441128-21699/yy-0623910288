@@ -25,6 +25,24 @@
                 </div>
             </div>
             <div class="header-right">
+                <div class="type-filter">
+                    <span class="filter-label">问题类型：</span>
+                    <div class="filter-buttons type-filter-buttons">
+                        <button class="type-filter-btn active" data-type="0">全部</button>
+                        <button class="type-filter-btn" data-type="1">
+                            <span class="type-dot" style="background:#ff6b6b"></span>占道经营
+                        </button>
+                        <button class="type-filter-btn" data-type="2">
+                            <span class="type-dot" style="background:#ffd93d"></span>夜间施工
+                        </button>
+                        <button class="type-filter-btn" data-type="3">
+                            <span class="type-dot" style="background:#6bcb77"></span>垃圾堆放
+                        </button>
+                        <button class="type-filter-btn" data-type="4">
+                            <span class="type-dot" style="background:#4d96ff"></span>共享单车
+                        </button>
+                    </div>
+                </div>
                 <div class="time-filter">
                     <span class="filter-label">时间范围：</span>
                     <div class="filter-buttons">
@@ -47,7 +65,7 @@
                         </span>
                         热点词汇
                     </h2>
-                    <span class="panel-subtitle">突发热点监测</span>
+                    <span class="panel-subtitle">突发热点监测 · 点击高亮地图关联点位</span>
                 </div>
                 <div class="panel-body">
                     <div class="hotwords-container" id="hotwordsContainer">
@@ -141,31 +159,54 @@
                             </g>
                         </svg>
                         
-                        <div class="map-tooltip" id="mapTooltip" style="display:none;">
-                            <div class="tooltip-header">
-                                <span class="tooltip-title" id="tooltipTitle">投诉点位</span>
-                                <span class="tooltip-type" id="tooltipType">占道经营</span>
+                        <div class="detail-card" id="detailCard" style="display:none;">
+                            <div class="detail-card-header">
+                                <div class="detail-card-title-row">
+                                    <h3 class="detail-card-title" id="detailTitle">投诉详情</h3>
+                                    <button class="detail-card-close" id="detailCardClose">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"/>
+                                            <line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <span class="detail-card-type" id="detailType">占道经营</span>
                             </div>
-                            <div class="tooltip-content">
-                                <div class="tooltip-row">
-                                    <span class="tooltip-label">投诉摘要：</span>
-                                    <span class="tooltip-text" id="tooltipSummary">该处流动摊贩占道经营严重，影响通行</span>
+                            <div class="detail-card-body">
+                                <div class="detail-section">
+                                    <div class="detail-section-title">居民原文摘要</div>
+                                    <div class="detail-summary" id="detailSummary"></div>
                                 </div>
-                                <div class="tooltip-row">
-                                    <span class="tooltip-label">来源平台：</span>
-                                    <span class="tooltip-source" id="tooltipSource">12345热线</span>
+                                <div class="detail-grid">
+                                    <div class="detail-item">
+                                        <span class="detail-label">详细地址</span>
+                                        <span class="detail-value" id="detailAddress">-</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">来源平台</span>
+                                        <span class="detail-value" id="detailSource">-</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">相似投诉</span>
+                                        <span class="detail-value highlight" id="detailSimilar">-</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">最近投诉</span>
+                                        <span class="detail-value" id="detailTime">-</span>
+                                    </div>
                                 </div>
-                                <div class="tooltip-row">
-                                    <span class="tooltip-label">相似投诉：</span>
-                                    <span class="tooltip-count" id="tooltipCount">23 件</span>
+                                <div class="detail-section">
+                                    <div class="detail-section-title">关联关键词</div>
+                                    <div class="detail-tags" id="detailTags"></div>
                                 </div>
-                                <div class="tooltip-row">
-                                    <span class="tooltip-label">最近投诉：</span>
-                                    <span class="tooltip-time" id="tooltipTime">2小时前</span>
+                                <div class="detail-status">
+                                    <span class="detail-label">处置状态</span>
+                                    <span class="status-badge" id="detailStatus">-</span>
                                 </div>
                             </div>
-                            <div class="tooltip-footer">
-                                <button class="tooltip-btn">查看详情</button>
+                            <div class="detail-card-footer">
+                                <button class="detail-btn secondary" id="detailLocateBtn">地图定位</button>
+                                <button class="detail-btn primary">派单处置</button>
                             </div>
                         </div>
                     </div>
@@ -197,60 +238,100 @@
 
             <section class="panel panel-right">
                 <div class="panel-header">
-                    <h2 class="panel-title">
-                        <span class="title-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
-                        </span>
-                        处置进度
-                    </h2>
-                    <span class="panel-subtitle">按执法队伍统计</span>
-                </div>
-                <div class="panel-body">
-                    <div class="progress-summary">
-                        <div class="summary-card dispatched">
-                            <div class="summary-icon">
+                    <div class="panel-header-row">
+                        <h2 class="panel-title">
+                            <span class="title-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                     <polyline points="22 4 12 14.01 9 11.01"/>
                                 </svg>
+                            </span>
+                            处置进度
+                        </h2>
+                        <span class="panel-subtitle" id="progressSubtitle">按执法队伍统计</span>
+                    </div>
+                </div>
+                <div class="panel-body" id="progressBody">
+                    <div class="progress-list-view" id="progressListView">
+                        <div class="progress-summary">
+                            <div class="summary-card dispatched">
+                                <div class="summary-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                </div>
+                                <div class="summary-info">
+                                    <span class="summary-value" id="dispatchedCount">856</span>
+                                    <span class="summary-label">已派单</span>
+                                </div>
                             </div>
-                            <div class="summary-info">
-                                <span class="summary-value" id="dispatchedCount">856</span>
-                                <span class="summary-label">已派单</span>
+                            <div class="summary-card arrived">
+                                <div class="summary-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
+                                </div>
+                                <div class="summary-info">
+                                    <span class="summary-value" id="arrivedCount">623</span>
+                                    <span class="summary-label">已到场</span>
+                                </div>
+                            </div>
+                            <div class="summary-card replied">
+                                <div class="summary-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                    </svg>
+                                </div>
+                                <div class="summary-info">
+                                    <span class="summary-value" id="repliedCount">547</span>
+                                    <span class="summary-label">已回复</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="summary-card arrived">
-                            <div class="summary-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="12" cy="7" r="4"/>
-                                </svg>
-                            </div>
-                            <div class="summary-info">
-                                <span class="summary-value" id="arrivedCount">623</span>
-                                <span class="summary-label">已到场</span>
-                            </div>
-                        </div>
-                        <div class="summary-card replied">
-                            <div class="summary-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                </svg>
-                            </div>
-                            <div class="summary-info">
-                                <span class="summary-value" id="repliedCount">547</span>
-                                <span class="summary-label">已回复</span>
-                            </div>
+                        
+                        <div class="team-progress-list" id="teamProgressList">
                         </div>
                     </div>
-                    
-                    <div class="team-progress-list" id="teamProgressList">
+
+                    <div class="team-detail-view" id="teamDetailView" style="display:none;">
+                        <div class="team-detail-header">
+                            <button class="back-btn" id="backToListBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"/>
+                                </svg>
+                                返回
+                            </button>
+                            <h3 class="team-detail-title" id="teamDetailTitle">队伍详情</h3>
+                        </div>
+                        <div class="team-detail-content">
+                            <div class="team-info-card">
+                                <div class="team-info-row">
+                                    <span class="team-info-label">负责片区</span>
+                                    <span class="team-info-value" id="teamDetailArea">-</span>
+                                </div>
+                                <div class="team-info-row">
+                                    <span class="team-info-label">覆盖区县</span>
+                                    <span class="team-info-value" id="teamDetailDistricts">-</span>
+                                </div>
+                            </div>
+                            
+                            <div class="status-dist-section">
+                                <div class="section-title">处置状态分布</div>
+                                <div class="status-dist-bars" id="statusDistBars">
+                                </div>
+                            </div>
+
+                            <div class="pending-section">
+                                <div class="section-title">未回复重点点位</div>
+                                <div class="pending-list" id="pendingList">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

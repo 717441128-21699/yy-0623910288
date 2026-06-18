@@ -1,5 +1,6 @@
 const Dashboard = {
     currentRange: 'today',
+    currentTypeId: null,
 
     init() {
         AppData.init();
@@ -11,7 +12,8 @@ const Dashboard = {
         setInterval(() => this.updateTime(), 1000);
 
         this.bindFilterEvents();
-        this.updateAll('today');
+        this.bindTypeFilterEvents();
+        this.updateAll('today', null);
 
         setInterval(() => this.refreshData(), 30000);
     },
@@ -49,7 +51,22 @@ const Dashboard = {
                 const range = btn.getAttribute('data-range');
                 if (range && range !== this.currentRange) {
                     this.setActiveFilter(range);
-                    this.updateAll(range);
+                    this.updateAll(range, this.currentTypeId);
+                }
+            });
+        });
+    },
+
+    bindTypeFilterEvents() {
+        const typeBtns = document.querySelectorAll('.type-filter-btn');
+        typeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const typeStr = btn.getAttribute('data-type');
+                const typeId = typeStr === '0' ? null : parseInt(typeStr);
+                
+                if (typeId !== this.currentTypeId) {
+                    this.setActiveTypeFilter(typeId);
+                    this.updateAll(this.currentRange, typeId);
                 }
             });
         });
@@ -64,15 +81,25 @@ const Dashboard = {
         });
     },
 
-    updateAll(range) {
-        MapModule.update(range);
-        HotwordsModule.update(range);
-        ProgressModule.update(range);
-        this.updateStats(range);
+    setActiveTypeFilter(typeId) {
+        this.currentTypeId = typeId;
+        const typeBtns = document.querySelectorAll('.type-filter-btn');
+        typeBtns.forEach(btn => {
+            const btnTypeStr = btn.getAttribute('data-type');
+            const btnTypeId = btnTypeStr === '0' ? null : parseInt(btnTypeStr);
+            btn.classList.toggle('active', btnTypeId === typeId);
+        });
     },
 
-    updateStats(range) {
-        const stats = AppData.getSummaryStats(range);
+    updateAll(range, typeId = null) {
+        MapModule.update(range, typeId);
+        HotwordsModule.update(range, typeId);
+        ProgressModule.update(range, typeId);
+        this.updateStats(range, typeId);
+    },
+
+    updateStats(range, typeId = null) {
+        const stats = AppData.getSummaryStats(range, typeId);
         
         const totalEl = document.getElementById('totalComplaints');
         const trendEl = document.getElementById('trendRate');
@@ -97,7 +124,7 @@ const Dashboard = {
         AppData.generateComplaints();
         AppData.generateHotwords();
         AppData.generateTeams();
-        this.updateAll(this.currentRange);
+        this.updateAll(this.currentRange, this.currentTypeId);
     },
 
     animateValue(element, start, end, duration = 500) {
