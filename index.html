@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>城市管理局指挥中心 - 市容环境舆情监测大屏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/>
+                    </svg>
+                </div>
+                <h1 class="main-title">市容环境类民生诉求舆情监测大屏</h1>
+            </div>
+            <div class="header-center">
+                <div class="time-display">
+                    <span class="current-date" id="currentDate">2026年06月19日</span>
+                    <span class="current-time" id="currentTime">14:30:25</span>
+                    <span class="current-week">星期五</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="time-filter">
+                    <span class="filter-label">时间范围：</span>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-range="today">今日</button>
+                        <button class="filter-btn" data-range="threedays">近三天</button>
+                        <button class="filter-btn" data-range="week">本周</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            <section class="panel panel-left">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span class="title-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </span>
+                        热点词汇
+                    </h2>
+                    <span class="panel-subtitle">突发热点监测</span>
+                </div>
+                <div class="panel-body">
+                    <div class="hotwords-container" id="hotwordsContainer">
+                    </div>
+                    <div class="hotwords-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot hot"></span>
+                            <span>热度飙升</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot warm"></span>
+                            <span>持续关注</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot normal"></span>
+                            <span>常规热点</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel panel-center">
+                <div class="panel-header map-header">
+                    <div class="map-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="totalComplaints">1,286</span>
+                            <span class="stat-label">投诉总量</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-value trend-up" id="trendRate">+12.5%</span>
+                            <span class="stat-label">较昨日</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="pendingCount">342</span>
+                            <span class="stat-label">待处置</span>
+                        </div>
+                    </div>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <span class="legend-marker type-1"></span>
+                            <span>占道经营</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-marker type-2"></span>
+                            <span>夜间施工噪声</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-marker type-3"></span>
+                            <span>垃圾堆放</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-marker type-4"></span>
+                            <span>共享单车淤积</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body map-body">
+                    <div class="map-container" id="mapContainer">
+                        <svg class="map-svg" viewBox="0 0 800 600" id="mapSvg">
+                            <defs>
+                                <linearGradient id="mapBgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#0a1628;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#0d2137;stop-opacity:1" />
+                                </linearGradient>
+                                <filter id="glow">
+                                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
+                                <filter id="markerGlow">
+                                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
+                            </defs>
+                            <rect width="800" height="600" fill="url(#mapBgGradient)"/>
+                            
+                            <g id="districtPaths" class="districts">
+                            </g>
+                            
+                            <g id="roadNetwork" class="roads">
+                            </g>
+                            
+                            <g id="markerGroup" class="markers">
+                            </g>
+                        </svg>
+                        
+                        <div class="map-tooltip" id="mapTooltip" style="display:none;">
+                            <div class="tooltip-header">
+                                <span class="tooltip-title" id="tooltipTitle">投诉点位</span>
+                                <span class="tooltip-type" id="tooltipType">占道经营</span>
+                            </div>
+                            <div class="tooltip-content">
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">投诉摘要：</span>
+                                    <span class="tooltip-text" id="tooltipSummary">该处流动摊贩占道经营严重，影响通行</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">来源平台：</span>
+                                    <span class="tooltip-source" id="tooltipSource">12345热线</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">相似投诉：</span>
+                                    <span class="tooltip-count" id="tooltipCount">23 件</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">最近投诉：</span>
+                                    <span class="tooltip-time" id="tooltipTime">2小时前</span>
+                                </div>
+                            </div>
+                            <div class="tooltip-footer">
+                                <button class="tooltip-btn">查看详情</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="district-stats">
+                        <div class="district-stat-item" data-district="0">
+                            <span class="district-name">城东区</span>
+                            <span class="district-count">328</span>
+                        </div>
+                        <div class="district-stat-item" data-district="1">
+                            <span class="district-name">城西区</span>
+                            <span class="district-count">256</span>
+                        </div>
+                        <div class="district-stat-item" data-district="2">
+                            <span class="district-name">城南区</span>
+                            <span class="district-count">287</span>
+                        </div>
+                        <div class="district-stat-item" data-district="3">
+                            <span class="district-name">城北区</span>
+                            <span class="district-count">198</span>
+                        </div>
+                        <div class="district-stat-item" data-district="4">
+                            <span class="district-name">高新区</span>
+                            <span class="district-count">217</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel panel-right">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span class="title-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </span>
+                        处置进度
+                    </h2>
+                    <span class="panel-subtitle">按执法队伍统计</span>
+                </div>
+                <div class="panel-body">
+                    <div class="progress-summary">
+                        <div class="summary-card dispatched">
+                            <div class="summary-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="dispatchedCount">856</span>
+                                <span class="summary-label">已派单</span>
+                            </div>
+                        </div>
+                        <div class="summary-card arrived">
+                            <div class="summary-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="arrivedCount">623</span>
+                                <span class="summary-label">已到场</span>
+                            </div>
+                        </div>
+                        <div class="summary-card replied">
+                            <div class="summary-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-value" id="repliedCount">547</span>
+                                <span class="summary-label">已回复</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="team-progress-list" id="teamProgressList">
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="dashboard-footer">
+            <div class="footer-info">
+                <span>数据更新时间：<span id="updateTime">2026-06-19 14:30:00</span></span>
+                <span class="footer-divider">|</span>
+                <span>数据来源：12345政务服务热线、数字城管、微信公众号、官方微博</span>
+            </div>
+            <div class="footer-status">
+                <span class="status-dot"></span>
+                <span>系统运行正常</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/hotwords.js"></script>
+    <script src="js/progress.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
