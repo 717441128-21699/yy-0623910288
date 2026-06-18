@@ -57,31 +57,64 @@
         <main class="dashboard-main">
             <section class="panel panel-left">
                 <div class="panel-header">
-                    <h2 class="panel-title">
-                        <span class="title-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                            </svg>
-                        </span>
-                        热点词汇
-                    </h2>
-                    <span class="panel-subtitle">突发热点监测 · 点击高亮地图关联点位</span>
+                    <div class="panel-tabs" id="leftPanelTabs">
+                        <button class="panel-tab active" data-tab="dispatch">调度态势</button>
+                        <button class="panel-tab" data-tab="hotwords">热点词汇</button>
+                    </div>
                 </div>
                 <div class="panel-body">
-                    <div class="hotwords-container" id="hotwordsContainer">
+                    <div class="panel-tab-content active" id="dispatchTab">
+                        <div class="dispatch-overview">
+                            <div class="dispatch-section">
+                                <div class="section-title-row">
+                                    <span class="section-title">片区待处置压力</span>
+                                    <span class="section-subtitle">点击联动地图</span>
+                                </div>
+                                <div class="district-pressure-list" id="districtPressureList">
+                                </div>
+                            </div>
+                            <div class="dispatch-section">
+                                <div class="section-title-row">
+                                    <span class="section-title">超时高风险</span>
+                                    <span class="section-subtitle">2小时内未处置</span>
+                                </div>
+                                <div class="risk-list" id="riskList">
+                                </div>
+                            </div>
+                            <div class="dispatch-section">
+                                <div class="section-title-row">
+                                    <span class="section-title">建议优先调度</span>
+                                    <span class="section-subtitle">点击查看队伍详情</span>
+                                </div>
+                                <div class="suggest-team-list" id="suggestTeamList">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="hotwords-legend">
-                        <div class="legend-item">
-                            <span class="legend-dot hot"></span>
-                            <span>热度飙升</span>
+                    <div class="panel-tab-content" id="hotwordsTab">
+                        <div class="hotwords-container" id="hotwordsContainer">
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-dot warm"></span>
-                            <span>持续关注</span>
+                        <div class="hotword-related-section" id="hotwordRelatedSection" style="display:none;">
+                            <div class="section-title-row">
+                                <span class="section-title" id="hotwordRelatedTitle">关联点位</span>
+                                <button class="clear-hotword-btn" id="clearHotwordBtn">清除</button>
+                            </div>
+                            <div class="hotword-related-list" id="hotwordRelatedList">
+                            </div>
                         </div>
-                        <div class="legend-item">
-                            <span class="legend-dot normal"></span>
-                            <span>常规热点</span>
+                        <div class="hotwords-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot hot"></span>
+                                <span>热度飙升</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot warm"></span>
+                                <span>持续关注</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot normal"></span>
+                                <span>常规热点</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -170,38 +203,63 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <span class="detail-card-type" id="detailType">占道经营</span>
+                                <div class="detail-card-meta-row">
+                                    <span class="detail-card-type" id="detailType">占道经营</span>
+                                    <div class="detail-card-tabs">
+                                        <button class="detail-tab active" data-detail-tab="single">单条详情</button>
+                                        <button class="detail-tab" data-detail-tab="similar">相似投诉聚合</button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="detail-card-body">
-                                <div class="detail-section">
-                                    <div class="detail-section-title">居民原文摘要</div>
-                                    <div class="detail-summary" id="detailSummary"></div>
+                                <div class="detail-tab-content active" id="detailTabSingle">
+                                    <div class="detail-section">
+                                        <div class="detail-section-title">居民原文摘要</div>
+                                        <div class="detail-summary" id="detailSummary"></div>
+                                    </div>
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <span class="detail-label">详细地址</span>
+                                            <span class="detail-value" id="detailAddress">-</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">来源平台</span>
+                                            <span class="detail-value" id="detailSource">-</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">相似投诉</span>
+                                            <span class="detail-value highlight" id="detailSimilar">-</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">最近投诉</span>
+                                            <span class="detail-value" id="detailTime">-</span>
+                                        </div>
+                                    </div>
+                                    <div class="detail-section">
+                                        <div class="detail-section-title">关联关键词</div>
+                                        <div class="detail-tags" id="detailTags"></div>
+                                    </div>
+                                    <div class="detail-status">
+                                        <span class="detail-label">处置状态</span>
+                                        <span class="status-badge" id="detailStatus">-</span>
+                                    </div>
                                 </div>
-                                <div class="detail-grid">
-                                    <div class="detail-item">
-                                        <span class="detail-label">详细地址</span>
-                                        <span class="detail-value" id="detailAddress">-</span>
+                                <div class="detail-tab-content" id="detailTabSimilar">
+                                    <div class="detail-section">
+                                        <div class="detail-section-title">最近投诉原文</div>
+                                        <div class="similar-complaints-list" id="similarComplaintsList">
+                                        </div>
                                     </div>
-                                    <div class="detail-item">
-                                        <span class="detail-label">来源平台</span>
-                                        <span class="detail-value" id="detailSource">-</span>
+                                    <div class="detail-section">
+                                        <div class="detail-section-title">来源平台占比</div>
+                                        <div class="source-distribution" id="sourceDistribution">
+                                        </div>
                                     </div>
-                                    <div class="detail-item">
-                                        <span class="detail-label">相似投诉</span>
-                                        <span class="detail-value highlight" id="detailSimilar">-</span>
+                                    <div class="detail-section">
+                                        <div class="detail-section-title">时间趋势（最近24小时）</div>
+                                        <div class="time-trend" id="timeTrend">
+                                        </div>
                                     </div>
-                                    <div class="detail-item">
-                                        <span class="detail-label">最近投诉</span>
-                                        <span class="detail-value" id="detailTime">-</span>
-                                    </div>
-                                </div>
-                                <div class="detail-section">
-                                    <div class="detail-section-title">关联关键词</div>
-                                    <div class="detail-tags" id="detailTags"></div>
-                                </div>
-                                <div class="detail-status">
-                                    <span class="detail-label">处置状态</span>
-                                    <span class="status-badge" id="detailStatus">-</span>
                                 </div>
                             </div>
                             <div class="detail-card-footer">
@@ -354,6 +412,7 @@
     <script src="js/map.js"></script>
     <script src="js/hotwords.js"></script>
     <script src="js/progress.js"></script>
+    <script src="js/dispatch.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

@@ -248,7 +248,138 @@ const MapModule = {
         statusBadge.textContent = complaint.status;
         statusBadge.className = `status-badge ${statusMap[complaint.status] || ''}`;
 
+        this.renderSimilarComplaints(complaint);
+        this.switchDetailTab('single');
         this.detailCard.style.display = 'flex';
+    },
+
+    renderSimilarComplaints(complaint) {
+        const groupData = AppData.getSimilarComplaintsGroup(
+            complaint,
+            this.currentRange,
+            this.currentTypeId
+        );
+
+        const similarList = document.getElementById('similarComplaintsList');
+        similarList.innerHTML = '';
+        
+        groupData.recentComplaints.forEach((c, index) => {
+            const item = document.createElement('div');
+            item.className = 'similar-complaint-item';
+
+            const text = document.createElement('div');
+            text.className = 'similar-complaint-text';
+            text.textContent = c.summary;
+
+            const meta = document.createElement('div');
+            meta.className = 'similar-complaint-meta';
+
+            const source = document.createElement('span');
+            source.className = 'similar-complaint-source';
+            source.textContent = c.source;
+
+            const time = document.createElement('span');
+            time.className = 'similar-complaint-time';
+            time.textContent = c.timeAgo;
+
+            meta.appendChild(source);
+            meta.appendChild(time);
+            item.appendChild(text);
+            item.appendChild(meta);
+            similarList.appendChild(item);
+        });
+
+        this.renderSourceDistribution(groupData.sourceDistribution);
+        this.renderTimeTrend(groupData.hourlyTrend);
+    },
+
+    renderSourceDistribution(sourceData) {
+        const container = document.getElementById('sourceDistribution');
+        container.innerHTML = '';
+
+        const total = sourceData.reduce((sum, s) => sum + s.count, 0) || 1;
+
+        sourceData.forEach((source, index) => {
+            const item = document.createElement('div');
+            item.className = 'source-dist-item';
+
+            const name = document.createElement('span');
+            name.className = 'source-dist-name';
+            name.textContent = source.name;
+
+            const bar = document.createElement('div');
+            bar.className = 'source-dist-bar';
+
+            const fill = document.createElement('div');
+            fill.className = 'source-dist-fill';
+            fill.style.width = '0%';
+            fill.dataset.targetWidth = `${Math.min((source.count / total) * 100, 100)}%`;
+            
+            bar.appendChild(fill);
+
+            const count = document.createElement('span');
+            count.className = 'source-dist-count';
+            count.textContent = source.count;
+
+            item.appendChild(name);
+            item.appendChild(bar);
+            item.appendChild(count);
+            container.appendChild(item);
+
+            setTimeout(() => {
+                fill.style.width = fill.dataset.targetWidth;
+            }, index * 100 + 200);
+        });
+    },
+
+    renderTimeTrend(trendData) {
+        const container = document.getElementById('timeTrend');
+        container.innerHTML = '';
+
+        const maxCount = Math.max(...trendData, 1);
+        const hours = ['5h前', '4h前', '3h前', '2h前', '1h前', '现在'];
+
+        const barsContainer = document.createElement('div');
+        barsContainer.className = 'time-trend';
+
+        trendData.forEach((count, index) => {
+            const bar = document.createElement('div');
+            bar.className = 'time-trend-bar';
+            const height = maxCount > 0 ? Math.max((count / maxCount) * 60, 4) : 4;
+            bar.dataset.count = count > 0 ? count : '';
+            bar.style.height = '0px';
+            bar.dataset.targetHeight = `${height}px`;
+            
+            barsContainer.appendChild(bar);
+
+            setTimeout(() => {
+                bar.style.height = bar.dataset.targetHeight;
+            }, index * 80 + 300);
+        });
+
+        const labelsContainer = document.createElement('div');
+        labelsContainer.className = 'time-trend-labels';
+        
+        hours.forEach(hour => {
+            const label = document.createElement('span');
+            label.textContent = hour;
+            labelsContainer.appendChild(label);
+        });
+
+        container.appendChild(barsContainer);
+        container.appendChild(labelsContainer);
+    },
+
+    switchDetailTab(tabName) {
+        const tabs = document.querySelectorAll('.detail-tab');
+        tabs.forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-detail-tab') === tabName);
+        });
+
+        const tabContents = document.querySelectorAll('.detail-tab-content');
+        tabContents.forEach(content => {
+            content.classList.toggle('active', content.id === `detailTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+        });
     },
 
     closeDetailCard() {
@@ -271,6 +402,7 @@ const MapModule = {
                 this.closeDetailCard();
                 this.clearHighlight();
                 HotwordsModule.clearSelection();
+                DispatchModule.clearDistrictSelection();
             }
         });
 
@@ -284,6 +416,15 @@ const MapModule = {
 
         this.detailCard.addEventListener('click', (e) => {
             e.stopPropagation();
+        });
+
+        const detailTabs = document.querySelectorAll('.detail-tab');
+        detailTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tabName = tab.getAttribute('data-detail-tab');
+                this.switchDetailTab(tabName);
+            });
         });
     },
 

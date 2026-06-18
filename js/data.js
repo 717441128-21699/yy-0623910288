@@ -318,8 +318,12 @@ const AppData = {
             teams = teams.map(team => {
                 const teamComplaints = this.getComplaints(range, typeId).filter(c => c.teamId === team.id);
                 const dispatched = teamComplaints.length;
-                const arrived = teamComplaints.filter(c => c.status === '已到场' || c.status === '已回复' || c.status === '处理中').length;
+                
+                const processing = teamComplaints.filter(c => c.status === '处理中').length;
+                const arrived = teamComplaints.filter(c => c.status === '已到场').length + processing;
                 const replied = teamComplaints.filter(c => c.status === '已回复').length;
+                
+                const pendingComplaints = this.getPendingComplaints(range, team.id, typeId);
                 
                 return {
                     ...team,
@@ -328,11 +332,12 @@ const AppData = {
                     arrived,
                     replied,
                     statusDist: {
-                        '已派单': dispatched - arrived,
-                        '已到场': arrived - replied,
-                        '已回复': replied,
-                        '处理中': Math.floor(dispatched * 0.05)
-                    }
+                        '已派单': Math.max(0, dispatched - arrived),
+                        '处理中': processing,
+                        '已到场': Math.max(0, arrived - replied - processing),
+                        '已回复': replied
+                    },
+                    pendingComplaints: pendingComplaints
                 };
             }).filter(t => t.total > 0);
         }
@@ -340,9 +345,119 @@ const AppData = {
         return teams;
     },
 
-    getTeamDetail(range, teamId) {
-        const teams = this.getTeams(range);
+    getTeamDetail(range, teamId, typeId = null) {
+        const teams = this.getTeams(range, typeId);
         return teams.find(t => t.id === teamId) || null;
+    },
+
+    getPendingComplaints(range, teamId, typeId = null) {
+        const complaints = this.getComplaints(range, typeId).filter(c => c.teamId === teamId);
+        const pending = complaints.filter(c => c.status !== '已回复');
+        
+        return pending
+            .sort((a, b) => b.similarCount - a.similarCount)
+            .slice(0, 5);
+    },
+
+    getDispatchOverview(range, typeId = null) {
+        const complaints = this.getComplaints(range, typeId);
+        const teams = this.getTeams(range, typeId);
+        
+        const districtPressures = this.districts.map(district => {
+            const districtComplaints = complaints.filter(c => c.districtId === district.id);
+            const pending = districtComplaints.filter(c => c.status !== '已回复').length;
+            
+            let level = 'low';
+            if (pending >= 15) level = 'high';
+            else if (pending >= 8) level = 'medium';
+            
+            return {
+                districtId: district.id,
+                name: district.name,
+                pendingCount: pending,
+                totalCount: districtComplaints.length,
+                level: level
+            };
+        }).sort((a, b) => b.pendingCount - a.pendingCount);
+        
+        const now = Date.now();
+        const twoHoursAgo = 2 * 60 * 60 * 1000;
+        const highRisk = complaints
+            .filter(c => c.status !== '已回复' && (now - c.timestamp) > twoHoursAgo)
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 5);
+        
+        const suggestedTeams = teams
+            .map(team => {
+                const pending = team.total - team.replied;
+                const riskScore = pending / (team.total || 1);
+                return {
+                    ...team,
+                    pending,
+                    riskScore
+                };
+            })
+            .sort((a, b) => b.riskScore - a.riskScore)
+            .slice(0, 4);
+        
+        return {
+            districtPressures,
+            highRisk,
+            suggestedTeams
+        };
+    },
+
+    getHotwordRelatedComplaints(range, keyword, typeId = null) {
+        const complaints = this.getComplaints(range, typeId);
+        const related = complaints.filter(c => 
+            c.relatedKeywords && c.relatedKeywords.includes(keyword)
+        );
+        
+        return related
+            .sort((a, b) => b.similarCount - a.similarCount)
+            .slice(0, 8);
+    },
+
+    getSimilarComplaintsGroup(complaint, range, typeId = null) {
+        const allComplaints = this.getComplaints(range, typeId);
+        
+        const nearComplaints = allComplaints.filter(c => {
+            if (c.id === complaint.id) return true;
+            const dist = Math.sqrt(
+                Math.pow(complaint.x - c.x, 2) + 
+                Math.pow(complaint.y - c.y, 2)
+            );
+            return dist < 50 && c.typeId === complaint.typeId;
+        });
+        
+        const recentComplaints = nearComplaints
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 6);
+        
+        const sourceDist = {};
+        nearComplaints.forEach(c => {
+            sourceDist[c.source] = (sourceDist[c.source] || 0) + 1;
+        });
+        
+        const sourceArray = Object.entries(sourceDist)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
+        
+        const now = Date.now();
+        const hourlyCounts = [0, 0, 0, 0, 0, 0];
+        nearComplaints.forEach(c => {
+            const hoursAgo = Math.floor((now - c.timestamp) / (60 * 60 * 1000));
+            if (hoursAgo < 6) {
+                hourlyCounts[5 - hoursAgo]++;
+            }
+        });
+        
+        return {
+            recentComplaints,
+            sourceDistribution: sourceArray,
+            hourlyTrend: hourlyCounts,
+            totalCount: nearComplaints.length
+        };
     },
 
     getDistrictStats(range, typeId = null) {

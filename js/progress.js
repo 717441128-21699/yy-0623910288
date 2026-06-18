@@ -150,17 +150,23 @@ const ProgressModule = {
     },
 
     openTeamDetail(team) {
-        document.getElementById('progressSubtitle').textContent = team.name;
-        document.getElementById('teamDetailTitle').textContent = team.name;
-        document.getElementById('teamDetailArea').textContent = team.area || '-';
+        const teamDetail = AppData.getTeamDetail(
+            this.currentRange, 
+            team.id, 
+            this.currentTypeId
+        ) || team;
+
+        document.getElementById('progressSubtitle').textContent = teamDetail.name;
+        document.getElementById('teamDetailTitle').textContent = teamDetail.name;
+        document.getElementById('teamDetailArea').textContent = teamDetail.area || '-';
         
-        const districtNames = (team.districts || []).map(id => 
+        const districtNames = (teamDetail.districts || []).map(id => 
             AppData.districts.find(d => d.id === id)?.name || ''
         ).filter(Boolean).join('、');
         document.getElementById('teamDetailDistricts').textContent = districtNames || '-';
 
-        this.renderStatusDist(team);
-        this.renderPendingList(team);
+        this.renderStatusDist(teamDetail);
+        this.renderPendingList(teamDetail);
 
         this.showDetailView();
     },
@@ -215,6 +221,11 @@ const ProgressModule = {
                 fill.style.width = `${percent}%`;
             }, index * 100 + 200);
         });
+
+        const distSum = statusConfig.reduce((sum, c) => sum + (team.statusDist?.[c.key] || 0), 0);
+        if (distSum !== team.total) {
+            console.warn(`Status distribution sum (${distSum}) does not match total (${team.total}) for team ${team.name}`);
+        }
     },
 
     renderPendingList(team) {

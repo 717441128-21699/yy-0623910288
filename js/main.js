@@ -7,6 +7,7 @@ const Dashboard = {
         MapModule.init();
         HotwordsModule.init();
         ProgressModule.init();
+        DispatchModule.init();
 
         this.updateTime();
         setInterval(() => this.updateTime(), 1000);
@@ -95,6 +96,7 @@ const Dashboard = {
         MapModule.update(range, typeId);
         HotwordsModule.update(range, typeId);
         ProgressModule.update(range, typeId);
+        DispatchModule.update(range, typeId);
         this.updateStats(range, typeId);
     },
 
